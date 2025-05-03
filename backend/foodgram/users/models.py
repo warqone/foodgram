@@ -25,6 +25,13 @@ class User(AbstractUser):
         choices=constants.ROLE_CHOICES,
         default=constants.USER,
     )
+    avatar = models.ImageField(
+        'Аватар',
+        upload_to='media/users/',
+        blank=True,
+        null=True,
+        default='media/users/default.png'
+    )
 
     def __str__(self):
         return self.username[:constants.USERNAME_LENGTH]
