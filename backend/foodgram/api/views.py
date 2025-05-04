@@ -3,34 +3,17 @@ from django.contrib.auth import get_user_model
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import (
     viewsets, permissions, pagination, response, status, filters)
-from rest_framework.authtoken.models import Token
 from rest_framework.decorators import action
 
 from api import serializers
 from api.permissions import IsAdminOnly, IsAuthorOrReadOnly
 from api.serializers import (
-    SignUpSerializer, LoginSerializer,
+    AvatarSerializer,
     TagSerializer, IngredientSerializer,
     RecipeSerializer, RecipeCreateUpdateSerializer)
 from recipes.models import Recipe, Tag, Ingredient
 
 User = get_user_model()
-
-
-# class LoginLogoutView(viewsets.ViewSet):
-#     permission_classes = (permissions.AllowAny,)
-
-#     @action(detail=False, methods=['post'])
-#     def login(self, request):
-#         serializer = LoginSerializer(
-#             data=request.data, 
-#             context={'request': request}
-#         )
-#         serializer.is_valid(raise_exception=True)
-#         user = serializer.validated_data['user']
-#         token, created = Token.objects.get_or_create(user=user)
-#         return response.Response(
-#             {'auth_token': token.key}, status=status.HTTP_200_OK)
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -40,7 +23,7 @@ class UserViewSet(viewsets.ModelViewSet):
     filter_backends = (filters.SearchFilter,)
     search_fields = ('^username',)
     serializer_class = serializers.UserSerializer
-    http_method_names = ['get', 'post', 'patch', 'delete']
+    http_method_names = ['get', 'post', 'put', 'patch', 'delete']
 
     @action(detail=False, methods=['get', 'patch'], url_path='me',
             permission_classes=[permissions.IsAuthenticated])
@@ -53,6 +36,14 @@ class UserViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(
             user, data=request.data, partial=True
         )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return response.Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['put'], url_path='me/avatar')
+    def avatar(self, request):
+        user = request.user
+        serializer = AvatarSerializer(user, data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return response.Response(serializer.data, status=status.HTTP_200_OK)

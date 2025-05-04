@@ -1,6 +1,10 @@
-from django.contrib.auth import get_user_model, authenticate
+import base64
+
+from django.contrib.auth import get_user_model
 from django.core.validators import RegexValidator
+from django.core.files.base import ContentFile
 from rest_framework import serializers
+from rest_framework.authtoken.models import Token
 
 from recipes.models import Recipe, Tag, Ingredient, RecipeIngredient
 from users import constants
@@ -8,27 +12,15 @@ from users import constants
 User = get_user_model()
 
 
-class LoginSerializer(serializers.Serializer):
-    email = serializers.EmailField(required=True)
-    password = serializers.CharField(required=True, write_only=True)
+class TokenCreateSerializer(serializers.Serializer):
 
-    def validate(self, data):
-        email = data.get('email')
-        password = data.get('password')
-        if email and password:
-            user = authenticate(request=self.context.get('request'),
-                                email=email, password=password)
-            if not user:
-                raise serializers.ValidationError(
-                    'Неверный email или пароль.', code='authorization')
-            data['user'] = user
-            return data
-        else:
-            raise serializers.ValidationError(
-                'Необходимо указать email и пароль.', code='authorization')
+    def create(self, validated_data):
+        user = validated_data['user']
+        token, created = Token.objects.get_or_create(user=user)
+        return {'auth_token': token.key}
 
 
-class SignUpSerializer(serializers.Serializer):
+class UserSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(
         required=True,
         max_length=constants.EMAIL_LENGTH)
@@ -54,15 +46,19 @@ class SignUpSerializer(serializers.Serializer):
         max_length=constants.USERNAME_LENGTH
     )
     password = serializers.CharField(
-        required=True,
+        write_only=True,
+        required=False,
+        style={'input_type': 'password'},
         max_length=constants.PASSWORD_LENGTH
     )
+    avatar = serializers.ImageField(
+        required=False,
+    )
+    is_subscribed = serializers.SerializerMethodField()
 
-    def validate_username(self, value):
-        if User.objects.filter(username=value).exists():
-            raise serializers.ValidationError(
-                'Пользователь с таким именем уже существует.')
-        return value
+    def get_is_subscribed(self, obj):
+        return self.context['request'].user.is_authenticated and \
+            self.context['request'].user in obj.subscribers.all()
 
     def validate_email(self, value):
         if User.objects.filter(email=value).exists():
@@ -70,34 +66,46 @@ class SignUpSerializer(serializers.Serializer):
                 'Пользователь с таким email уже существует.')
         return value
 
-    def validate_role(self, value):
-        if self.context['request'].user.is_admin:
-            return value
-        return constants.USER
+    def validate_username(self, value):
+        if User.objects.filter(username=value).exists():
+            raise serializers.ValidationError(
+                'Пользователь с таким именем уже существует.')
+        return value
 
     def create(self, validated_data):
-        user = User.objects.create_user(
-            email=validated_data['email'],
-            username=validated_data['username'],
-            first_name=validated_data['first_name'],
-            last_name=validated_data['last_name'],
-            password=validated_data['password']
-        )
+        password = validated_data.pop('password')
+        user = User(**validated_data)
+        user.set_password(password)
+        user.save()
         return user
-
-
-class UserSerializer(serializers.ModelSerializer):
-    is_subscribed = serializers.SerializerMethodField()
-
-    def get_is_subscribed(self, obj):
-        return self.context['request'].user.is_authenticated and \
-            self.context['request'].user in obj.subscribers.all()
 
     class Meta:
         model = User
         fields = ('email', 'id', 'username', 'first_name', 'last_name',
-                  'is_subscribed', 'avatar')
+                  'is_subscribed', 'avatar', 'password')
         read_only_fields = ('id',)
+        extra_kwargs = {
+            'password': {'write_only': True},
+        }
+
+
+class Base64ImageField(serializers.ImageField):
+    def to_internal_value(self, data):
+        if isinstance(data, str) and data.startswith('data:image'):
+            format, imgstr = data.split(';base64,')
+            ext = format.split('/')[-1]
+
+            data = ContentFile(base64.b64decode(imgstr), name='temp.' + ext)
+
+        return super().to_internal_value(data)
+
+
+class AvatarSerializer(serializers.ModelSerializer):
+    avatar = Base64ImageField(required=True, allow_null=True)
+
+    class Meta:
+        model = User
+        fields = ('avatar',)
 
 
 class TagSerializer(serializers.ModelSerializer):
