@@ -117,7 +117,9 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.AllowAny',
     ],
 }
-
+MEDIA_PATH = BASE_DIR / 'media'
+AVATAR_PATH = MEDIA_PATH / 'users/avatar'
+DEFAULT_AVATAR = AVATAR_PATH / 'default.png'
 
 EMAIL_BASE = 'no_reply@yambd.com'
 EMAIL_BACKEND = 'django.core.mail.backends.filebased.EmailBackend'

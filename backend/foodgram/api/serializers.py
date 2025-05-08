@@ -47,7 +47,7 @@ class UserSerializer(serializers.ModelSerializer):
     )
     password = serializers.CharField(
         write_only=True,
-        required=False,
+        required=True,
         style={'input_type': 'password'},
         max_length=constants.PASSWORD_LENGTH
     )
@@ -140,8 +140,9 @@ class RecipeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recipe
         fields = (
-            'id', 'author', 'name', 'image', 'text', 'ingredients',
-            'tags', 'cooking_time', 'pub_date'
+            'id', 'tags', 'author', 'ingredients', 'is_favorited',
+            'is_in_shopping_cart', 'name', 'image', 'text',
+            'cooking_time'
         )
 
 
@@ -162,13 +163,14 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
     tags = serializers.PrimaryKeyRelatedField(
         queryset=Tag.objects.all(), many=True)
     ingredients = IngredientAmountSerializer(many=True)
-    image = serializers.ImageField()
+    image = Base64ImageField(required=True)
 
     class Meta:
         model = Recipe
         fields = (
             'author', 'name', 'image', 'text', 'ingredients', 'tags',
-            'cooking_time')
+            'cooking_time'
+        )
 
     def validate_cooking_time(self, value):
         if value <= 0:
@@ -226,3 +228,35 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         return RecipeSerializer(instance, context=self.context).data
+
+
+class ShortRecipeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Recipe
+        fields = ('id', 'name', 'image', 'cooking_time')
+
+
+class SubscriptionSerializer(serializers.ModelSerializer):
+    is_subscribed = serializers.SerializerMethodField()
+    recipes = serializers.SerializerMethodField()
+    recipes_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = (
+            'email', 'id', 'username', 'first_name', 'last_name',
+            'is_subscribed', 'recipes', 'recipes_count', 'avatar'
+        )
+
+    def get_is_subscribed(self, obj):
+        return True
+
+    def get_recipes(self, obj):
+        limit = self.context.get('request').query_params.get('recipes_limit')
+        queryset = obj.recipes.all()
+        if limit:
+            queryset = queryset[:int(limit)]
+        return ShortRecipeSerializer(queryset, many=True).data
+
+    def get_recipes_count(self, obj):
+        return obj.recipes.count()

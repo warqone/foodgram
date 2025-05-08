@@ -58,12 +58,13 @@ class Recipe(models.Model):
         verbose_name='Автор рецепта'
     )
     image = models.ImageField(
-        upload_to='recipes/media/',
+        upload_to='media/recipes/',
         verbose_name='Картинка'
     )
     ingredients = models.ManyToManyField(
-        Ingredient,
-        verbose_name='Ингредиенты'
+        'Ingredient',
+        through='RecipeIngredient',
+        verbose_name='Ингредиенты',
     )
     is_favorited = models.BooleanField(
         'Добавлено в избранное',
@@ -76,7 +77,7 @@ class Recipe(models.Model):
         verbose_name='Название рецепта',
         max_length=constants.MAX_TITLE_LENGTH
     )
-    string = models.CharField(
+    text = models.CharField(
         max_length=constants.RECIPE_MAX_LENGTH,
         verbose_name='Описание рецепта'
     )
@@ -101,7 +102,7 @@ class RecipeIngredient(models.Model):
     recipe = models.ForeignKey(
         Recipe,
         on_delete=models.CASCADE,
-        related_name='recipe_ingredients',
+        related_name='recipe_ingredient',
         verbose_name='Рецепт'
     )
     ingredient = models.ForeignKey(

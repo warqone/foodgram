@@ -1,6 +1,7 @@
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import RegexValidator
 from django.db import models
+from django.conf import settings
 
 from users import constants, validators
 
@@ -14,9 +15,7 @@ class User(AbstractUser):
             validators.validate_username,
             RegexValidator(
                 regex=constants.USERNAME_VALIDATOR,
-                message=(
-                    'Имя пользователя может содержать только буквы, цифры и '
-                    'символы @/./+/-/_')),
+                message='Имя пользователя может содержать только буквы, цифры и символы @/./+/-/_')
         ]
     )
     role = models.CharField(
@@ -27,10 +26,16 @@ class User(AbstractUser):
     )
     avatar = models.ImageField(
         'Аватар',
-        upload_to='media/users/',
+        upload_to=settings.AVATAR_PATH,
         blank=True,
-        null=True,
-        default='media/users/default.png'
+        null=True
+    )
+    subscriptions = models.ManyToManyField(
+        'self',
+        through='Subscription',
+        symmetrical=False,
+        verbose_name='Подписки',
+        related_name='subscribers'
     )
 
     def __str__(self):
@@ -45,21 +50,31 @@ class Subscription(models.Model):
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='subscriptions',
+        related_name='following',
         verbose_name='Подписчик'
     )
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='subscribers',
+        related_name='followers',
         verbose_name='Автор'
     )
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ('user', 'author')
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'author'],
+                name='unique_subscription'
+            ),
+            models.CheckConstraint(
+                check=~models.Q(user=models.F('author')),
+                name='prevent_self_subscription'
+            )
+        ]
+        ordering = ('-created_at',)
         verbose_name = 'Подписка'
         verbose_name_plural = 'Подписки'
-        ordering = ('user',)
 
     def __str__(self):
         return f'{self.user} подписан на {self.author}'
