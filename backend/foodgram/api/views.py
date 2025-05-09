@@ -15,7 +15,7 @@ from api.serializers import (
     TagSerializer, IngredientSerializer,
     RecipeSerializer, RecipeCreateUpdateSerializer, SubscriptionSerializer,
     ShortRecipeSerializer)
-from recipes.models import Recipe, Tag, Ingredient, Favorite
+from recipes.models import Recipe, Tag, Ingredient, Favorite, ShoppingCart
 
 User = get_user_model()
 
@@ -205,6 +205,28 @@ class RecipeViewSet(viewsets.ModelViewSet):
             favorite = get_object_or_404(
                 Favorite, recipe=recipe, user=request.user)
             favorite.delete()
+            return response.Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=True,
+            methods=['post', 'delete'],
+            permission_classes=[permissions.IsAuthenticated],
+            url_path='shopping_cart')
+    def shopping_cart(self, request, pk=None):
+        recipe = get_object_or_404(Recipe, pk=pk)
+        if request.method == 'POST':
+            if ShoppingCart.objects.filter(
+                    recipe=recipe, user=request.user).exists():
+                return response.Response(
+                    {'errors': 'Рецепт уже добавлен в список покупок'},
+                    status=status.HTTP_400_BAD_REQUEST)
+            ShoppingCart.objects.create(recipe=recipe, user=request.user)
+            return response.Response(
+                ShortRecipeSerializer(recipe).data,
+                status=status.HTTP_201_CREATED)
+        elif request.method == 'DELETE':
+            shopping_cart = get_object_or_404(
+                ShoppingCart, recipe=recipe, user=request.user)
+            shopping_cart.delete()
             return response.Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True,

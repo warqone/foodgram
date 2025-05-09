@@ -169,10 +169,8 @@ class ShoppingCart(models.Model):
         verbose_name='Рецепт'
     )
     created = models.DateTimeField(
-        verbose_name='Дата добавления в корзину'
-    )
-    updated = models.DateTimeField(
-        verbose_name='Дата обновления в корзину'
+        verbose_name='Дата добавления в корзину',
+        auto_now_add=True
     )
 
     class Meta:

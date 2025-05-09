@@ -43,6 +43,12 @@ class User(AbstractUser):
         verbose_name='Избранные рецепты',
         related_name='favorites'
     )
+    shopping_cart = models.ManyToManyField(
+        'recipes.Recipe',
+        through='recipes.ShoppingCart',
+        verbose_name='Список покупок',
+        related_name='shopping_cart'
+    )
 
     def __str__(self):
         return self.username[:constants.USERNAME_LENGTH]
