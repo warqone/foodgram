@@ -6,7 +6,9 @@ SECRET_KEY = 'django-insecure-e72q5bbr@tmt%+=uujdj*(2j^9e!9-^yt%!k-#2h%q)$qk6gb&
 
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+HOST = 'localhost'
+
+ALLOWED_HOSTS = [HOST, '127.0.0.1']
 
 AUTH_USER_MODEL = 'users.User'
 
@@ -17,6 +19,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_filters',
     'rest_framework',
     'rest_framework.authtoken',
     'djoser',

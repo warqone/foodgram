@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from django.conf import settings
+from django.db.models import Count
 from djoser.serializers import SetPasswordSerializer
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import (
@@ -12,8 +13,9 @@ from api.permissions import IsAdminOnly, IsAuthorOrReadOnly
 from api.serializers import (
     AvatarSerializer,
     TagSerializer, IngredientSerializer,
-    RecipeSerializer, RecipeCreateUpdateSerializer, SubscriptionSerializer)
-from recipes.models import Recipe, Tag, Ingredient
+    RecipeSerializer, RecipeCreateUpdateSerializer, SubscriptionSerializer,
+    ShortRecipeSerializer)
+from recipes.models import Recipe, Tag, Ingredient, Favorite
 
 User = get_user_model()
 
@@ -71,17 +73,13 @@ class UserViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_204_NO_CONTENT)
 
     @action(
-        detail=True,  # Для работы с конкретным пользователем (id в URL)
-        methods=['post', 'delete'],
-        permission_classes=[permissions.IsAuthenticated],
-        url_path='subscribe'
-    )
+        detail=True, methods=['post', 'delete'],
+        permission_classes=[permissions.IsAuthenticated], url_path='subscribe')
     def subscribe(self, request, pk=None):
         user = request.user
         author = get_object_or_404(User, pk=pk)
 
         if request.method == 'POST':
-            # Проверка на подписку на самого себя
             if user == author:
                 return response.Response(
                     {'errors': 'Нельзя подписаться на самого себя'},
@@ -121,10 +119,30 @@ class UserViewSet(viewsets.ModelViewSet):
             pagination_class=pagination.LimitOffsetPagination)
     def subscriptions(self, request):
         user = request.user
-        queryset = user.subscriptions.all()
-        serializer = self.get_serializer(queryset, many=True)
-        return response.Response(
-            serializer.data, status=status.HTTP_200_OK)
+        queryset = user.subscriptions.annotate(
+            recipes_count=Count('recipes')).all()
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = SubscriptionSerializer(
+                page,
+                many=True,
+                context={
+                    'request': request,
+                    'recipes_limit': request.query_params.get('recipes_limit')
+                }
+            )
+            return self.get_paginated_response(serializer.data)
+
+        serializer = SubscriptionSerializer(
+            queryset,
+            many=True,
+            context={
+                'request': request,
+                'recipes_limit': request.query_params.get('recipes_limit')
+            }
+        )
+        return response.Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class TagViewSet(viewsets.ModelViewSet):
@@ -166,6 +184,37 @@ class RecipeViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filterset_fields = ['tags__slug', 'author__id']
     search_fields = ['name', 'text']
+
+    @action(detail=True,
+            methods=['post', 'delete'],
+            permission_classes=[permissions.IsAuthenticated],
+            url_path='favorite')
+    def favorite(self, request, pk=None):
+        recipe = get_object_or_404(Recipe, pk=pk)
+        if request.method == 'POST':
+            if Favorite.objects.filter(
+                    recipe=recipe, user=request.user).exists():
+                return response.Response(
+                    {'errors': 'Рецепт уже добавлен в избранное'},
+                    status=status.HTTP_400_BAD_REQUEST)
+            Favorite.objects.create(recipe=recipe, user=request.user)
+            return response.Response(
+                ShortRecipeSerializer(recipe).data,
+                status=status.HTTP_201_CREATED)
+        elif request.method == 'DELETE':
+            favorite = get_object_or_404(
+                Favorite, recipe=recipe, user=request.user)
+            favorite.delete()
+            return response.Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=True,
+            methods=['get'],
+            permission_classes=[permissions.AllowAny],
+            url_path='get-link')
+    def get_link(self, request, pk=None):
+        recipe = get_object_or_404(Recipe, pk=pk)
+        return response.Response({'short-link': recipe.get_link()},
+                                 status=status.HTTP_200_OK)
 
     def get_serializer_class(self):
         if self.action in ['create', 'update', 'partial_update']:

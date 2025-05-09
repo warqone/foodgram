@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth import get_user_model
+from django.conf import settings
 
 from recipes import constants
 
@@ -94,6 +95,9 @@ class Recipe(models.Model):
         verbose_name = 'Рецепт'
         verbose_name_plural = 'Рецепты'
 
+    def get_link(self):
+        return f"{settings.HOST}/recipes/{self.author}/{self.id}"
+
     def __str__(self):
         return f'Рецепт от {self.author.username}: {self.name}'
 
@@ -102,7 +106,7 @@ class RecipeIngredient(models.Model):
     recipe = models.ForeignKey(
         Recipe,
         on_delete=models.CASCADE,
-        related_name='recipe_ingredient',
+        related_name='recipe_ingredients',
         verbose_name='Рецепт'
     )
     ingredient = models.ForeignKey(
@@ -142,10 +146,8 @@ class Favorite(models.Model):
         verbose_name='Рецепт'
     )
     created = models.DateTimeField(
-        verbose_name='Дата добавления в избранное'
-    )
-    updated = models.DateTimeField(
-        verbose_name='Дата обновления в избранное'
+        verbose_name='Дата добавления в избранное',
+        auto_now_add=True
     )
 
     class Meta:

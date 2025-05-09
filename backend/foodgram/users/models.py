@@ -37,6 +37,12 @@ class User(AbstractUser):
         verbose_name='Подписки',
         related_name='subscribers'
     )
+    favorites = models.ManyToManyField(
+        'recipes.Recipe',
+        through='recipes.Favorite',
+        verbose_name='Избранные рецепты',
+        related_name='favorites'
+    )
 
     def __str__(self):
         return self.username[:constants.USERNAME_LENGTH]

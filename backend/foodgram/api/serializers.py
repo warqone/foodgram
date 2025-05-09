@@ -136,6 +136,11 @@ class RecipeSerializer(serializers.ModelSerializer):
     tags = TagSerializer(many=True, read_only=True)
     ingredients = RecipeIngredientSerializer(
         source='recipe_ingredients', many=True, read_only=True)
+    is_favorited = serializers.SerializerMethodField()
+
+    def get_is_favorited(self, obj):
+        return self.context['request'].user.is_authenticated and \
+            obj in self.context['request'].user.favorites.all()
 
     class Meta:
         model = Recipe
