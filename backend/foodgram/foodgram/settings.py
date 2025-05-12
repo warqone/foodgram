@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -120,6 +121,10 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.AllowAny',
     ],
 }
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
 MEDIA_PATH = BASE_DIR / 'media'
 AVATAR_PATH = MEDIA_PATH / 'users/avatar'
 DEFAULT_AVATAR = AVATAR_PATH / 'default.png'

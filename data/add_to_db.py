@@ -2,7 +2,7 @@ import json
 import sqlite3
 
 # Подключение к базе данных SQLite
-conn = sqlite3.connect('C:/Dev/sp18/foodgram/backend/foodgram/db.sqlite3')
+conn = sqlite3.connect('C:/Dev/sprint18/foodgram/backend/foodgram/db.sqlite3')
 cursor = conn.cursor()
 
 # Создание таблицы, если она еще не существует
@@ -15,7 +15,8 @@ CREATE TABLE IF NOT EXISTS recipes_ingredient (
 ''')
 
 # Загрузка данных из JSON-файла
-with open('C:/Dev/sp18/foodgram/data/ingredients.json', 'r', encoding='utf-8') as file:
+with open('C:/Dev/sprint18/foodgram/data/ingredients.json', 'r',
+          encoding='utf-8') as file:
     data = json.load(file)
 
 # Вставка данных в таблицу

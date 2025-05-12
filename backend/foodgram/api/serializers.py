@@ -20,7 +20,7 @@ class TokenCreateSerializer(serializers.Serializer):
         return {'auth_token': token.key}
 
 
-class UserSerializer(serializers.ModelSerializer):
+class UserCreateSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(
         required=True,
         max_length=constants.EMAIL_LENGTH)
@@ -51,14 +51,6 @@ class UserSerializer(serializers.ModelSerializer):
         style={'input_type': 'password'},
         max_length=constants.PASSWORD_LENGTH
     )
-    avatar = serializers.ImageField(
-        required=False,
-    )
-    is_subscribed = serializers.SerializerMethodField()
-
-    def get_is_subscribed(self, obj):
-        return self.context['request'].user.is_authenticated and \
-            self.context['request'].user in obj.subscribers.all()
 
     def validate_email(self, value):
         if User.objects.filter(email=value).exists():
@@ -81,9 +73,25 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
+        fields = (
+            'email', 'id', 'username', 'first_name', 'last_name', 'password'
+        )
+        extra_kwargs = {'password': {'write_only': True}}
+
+
+class UserSerializer(serializers.ModelSerializer):
+    avatar = serializers.ImageField(required=False)
+    is_subscribed = serializers.SerializerMethodField(read_only=True)
+
+    def get_is_subscribed(self, obj):
+        return self.context['request'].user.is_authenticated and \
+            self.context['request'].user in obj.subscribers.all()
+
+    class Meta:
+        model = User
         fields = ('email', 'id', 'username', 'first_name', 'last_name',
                   'is_subscribed', 'avatar', 'password')
-        read_only_fields = ('id',)
+        read_only_fields = ('id', 'is_subscribed')
         extra_kwargs = {
             'password': {'write_only': True},
         }
@@ -94,9 +102,7 @@ class Base64ImageField(serializers.ImageField):
         if isinstance(data, str) and data.startswith('data:image'):
             format, imgstr = data.split(';base64,')
             ext = format.split('/')[-1]
-
             data = ContentFile(base64.b64decode(imgstr), name='temp.' + ext)
-
         return super().to_internal_value(data)
 
 
@@ -171,8 +177,8 @@ class IngredientAmountSerializer(serializers.ModelSerializer):
 class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
     author = serializers.HiddenField(default=serializers.CurrentUserDefault())
     tags = serializers.PrimaryKeyRelatedField(
-        queryset=Tag.objects.all(), many=True)
-    ingredients = IngredientAmountSerializer(many=True)
+        queryset=Tag.objects.all(), many=True, required=True)
+    ingredients = IngredientAmountSerializer(required=True, many=True)
     image = Base64ImageField(required=True)
 
     class Meta:
@@ -200,6 +206,15 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
 
         return ingredients
 
+    def validate_tags(self, tags):
+        if not tags:
+            raise serializers.ValidationError(
+                'Необходимо добавить хотя бы один тег')
+        if len(tags) != len(set(tags)):
+            raise serializers.ValidationError(
+                'Теги не должны повторяться')
+        return tags
+
     def create(self, validated_data):
         tags = validated_data.pop('tags')
         ingredients = validated_data.pop('ingredients')
@@ -215,26 +230,31 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
             ) for item in ingredients
         ]
         RecipeIngredient.objects.bulk_create(recipe_ingredients)
-
         return recipe
 
     def update(self, instance, validated_data):
-        if 'tags' in validated_data:
-            tags = validated_data.pop('tags')
-            instance.tags.set(tags)
+        if 'tags' not in validated_data:
+            raise serializers.ValidationError(
+                'Укажите теги, обязательно при обновлении рецепта')
 
-        if 'ingredients' in validated_data:
-            ingredients = validated_data.pop('ingredients')
-            instance.recipe_ingredients.all().delete()
-            recipe_ingredients = [
-                RecipeIngredient(
-                    recipe=instance,
-                    ingredient=item['ingredient'],
-                    amount=item['amount']
-                ) for item in ingredients
-            ]
-            RecipeIngredient.objects.bulk_create(recipe_ingredients)
-        return super().update(instance, validated_data)
+        if 'ingredients' not in validated_data:
+            raise serializers.ValidationError(
+                'Укажите ингредиенты, обязательно при обновлении рецепта')
+
+        tags = validated_data.pop('tags')
+        ingredients = validated_data.pop('ingredients')
+        instance = super().update(instance, validated_data)
+        instance.tags.set(tags)
+        instance.recipe_ingredients.all().delete()
+        recipe_ingredients = [
+            RecipeIngredient(
+                recipe=instance,
+                ingredient=item['ingredient'],
+                amount=item['amount']
+            ) for item in ingredients
+        ]
+        RecipeIngredient.objects.bulk_create(recipe_ingredients)
+        return instance
 
     def to_representation(self, instance):
         return RecipeSerializer(instance, context=self.context).data
