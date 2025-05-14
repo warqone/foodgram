@@ -1,15 +1,18 @@
+# flake8: noqa
 import os
 from pathlib import Path
 
+from django.core.management.utils import get_random_secret_key
+from dotenv import load_dotenv
+
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(os.path.join(BASE_DIR, '.env'))
 
 SECRET_KEY = 'django-insecure-e72q5bbr@tmt%+=uujdj*(2j^9e!9-^yt%!k-#2h%q)$qk6gb&'
 
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 
-HOST = 'localhost'
-
-ALLOWED_HOSTS = [HOST, '127.0.0.1']
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost 127.0.0.1').split()
 
 AUTH_USER_MODEL = 'users.User'
 
@@ -60,12 +63,26 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'foodgram.wsgi.application'
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+SQLITE = os.getenv('SQLITE', '').lower() == 'true'
+
+if SQLITE:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv('POSTGRES_DB', 'django'),
+            'USER': os.getenv('POSTGRES_USER', 'django'),
+            'PASSWORD': os.getenv('POSTGRES_PASSWORD', ''),
+            'HOST': os.getenv('DB_HOST', 'db'),
+            'PORT': os.getenv('DB_PORT', 5432)
+        }
+    }
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -122,13 +139,11 @@ REST_FRAMEWORK = {
     ],
 }
 
+STATIC_URL = '/static/'
+STATIC_ROOT = '/app/backend_static/'
+
 MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_ROOT = '/app/media/'
 
-MEDIA_PATH = BASE_DIR / 'media'
-AVATAR_PATH = MEDIA_PATH / 'users/avatar'
-DEFAULT_AVATAR = AVATAR_PATH / 'default.png'
-
-EMAIL_BASE = 'no_reply@yambd.com'
-EMAIL_BACKEND = 'django.core.mail.backends.filebased.EmailBackend'
-EMAIL_FILE_PATH = BASE_DIR / 'sent_emails'
+RECIPES_ROOT = 'recipes/images/'
+AVATAR_PATH = 'users/'

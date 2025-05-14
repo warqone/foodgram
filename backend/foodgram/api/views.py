@@ -293,16 +293,37 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        if self.request.query_params.get('is_favorited'):
-            queryset = queryset.filter(favorites__user=self.request.user)
-        if self.request.query_params.get('is_in_shopping_cart'):
-            queryset = queryset.filter(shoppingcart__user=self.request.user)
+        user = self.request.user if \
+            self.request.user.is_authenticated else None
+
+        is_favorited = self.request.query_params.get('is_favorited')
+        if is_favorited == '1':
+            if user:
+                queryset = queryset.filter(favorites=user)
+            else:
+                return queryset.none()
+
+        is_in_shopping_cart = self.request.query_params.get(
+            'is_in_shopping_cart')
+        if is_in_shopping_cart == '1':
+            if user:
+                queryset = queryset.filter(shoppingcart__user=user)
+            else:
+                return queryset.none()
+
         if self.request.query_params.get('author'):
-            queryset = queryset.filter(author__id=self.request.user.id)
+            queryset = queryset.filter(
+                author__id=self.request.query_params.get('author')
+            )
+
         if self.request.query_params.get('tags'):
             queryset = queryset.filter(
-                tags__slug__in=self.request.query_params.getlist('tags'))
+                tags__slug__in=self.request.query_params.getlist('tags')
+            )
+
         queryset = queryset.distinct()
+
         if self.request.query_params.get('limit'):
             queryset = queryset[:int(self.request.query_params.get('limit'))]
+
         return queryset
