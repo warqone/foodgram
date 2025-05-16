@@ -1,10 +1,12 @@
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.conf import settings
+from hashids import Hashids
 
 from recipes import constants
 
 User = get_user_model()
+hashids = Hashids(min_length=6, salt=settings.SECRET_KEY)
 
 
 class Tag(models.Model):
@@ -95,8 +97,10 @@ class Recipe(models.Model):
         verbose_name = 'Рецепт'
         verbose_name_plural = 'Рецепты'
 
-    def get_link(self):
-        return f"{settings.HOST}/recipes/{self.author}/{self.id}"
+    def get_short_url(self):
+        """Генерирует короткую ссылку на рецепт."""
+        hashid = hashids.encode(self.id)
+        return f"{settings.HOST}/r/{hashid}"
 
     def __str__(self):
         return f'Рецепт от {self.author.username}: {self.name}'
@@ -115,7 +119,7 @@ class RecipeIngredient(models.Model):
         verbose_name='Ингредиент'
     )
     amount = models.PositiveSmallIntegerField(
-        verbose_name='Количество'
+        verbose_name='Количество',
     )
 
     class Meta:

@@ -245,7 +245,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             url_path='get-link')
     def get_link(self, request, pk=None):
         recipe = get_object_or_404(Recipe, pk=pk)
-        return response.Response({'short-link': recipe.get_link()},
+        return response.Response({'short-link': recipe.get_short_url()},
                                  status=status.HTTP_200_OK)
 
     @action(detail=False,
@@ -253,34 +253,42 @@ class RecipeViewSet(viewsets.ModelViewSet):
             permission_classes=[permissions.IsAuthenticated],
             url_path='download_shopping_cart')
     def download_shopping_cart(self, request):
+        """
+        Скачивает список ингредиентов из всех рецептов в формате .txt
+        """
         shopping_cart_items = ShoppingCart.objects.filter(
             user=request.user
         ).select_related('recipe').prefetch_related(
-            'recipe__ingredients'
+            'recipe__recipe_ingredients__ingredient'
         )
+
         if not shopping_cart_items.exists():
             return HttpResponse(
-                {'detail': 'Ваша корзина покупок пуста'},
+                'Ваша корзина покупок пуста',
+                content_type='text/plain; charset=utf-8',
                 status=status.HTTP_400_BAD_REQUEST
             )
 
         ingredients = {}
         for item in shopping_cart_items:
-            for ingredient in item.recipe.ingredients.all():
+            for recipe_ingredient in item.recipe.recipe_ingredients.all():
+                ingredient = recipe_ingredient.ingredient
                 key = (ingredient.name, ingredient.measurement_unit)
+
                 if key in ingredients:
-                    ingredients[key] += ingredient.name
+                    ingredients[key] += recipe_ingredient.amount
                 else:
-                    ingredients[key] = ingredient.name
-        text_lines = []
-        for name, unit in ingredients.items():
-            text_lines.append(f"{name} - {unit}\n")
+                    ingredients[key] = recipe_ingredient.amount
+
+        text_lines = [
+            f"{name} ({unit}) - {amount}\n" for
+            (name, unit), amount in ingredients.items()]
         response = HttpResponse(
-            text_lines,
+            "".join(text_lines),
             content_type='text/plain; charset=utf-8'
         )
-        response[
-            'Content-Disposition'] = 'attachment; filename="shopping_list.txt"'
+        response['Content-Disposition'] = ('attachment; '
+                                           'filename="shopping_list.txt"')
         return response
 
     def get_serializer_class(self):

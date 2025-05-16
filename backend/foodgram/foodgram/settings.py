@@ -8,11 +8,15 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(os.path.join(BASE_DIR, '.env'))
 
-SECRET_KEY = 'django-insecure-e72q5bbr@tmt%+=uujdj*(2j^9e!9-^yt%!k-#2h%q)$qk6gb&'
+SECRET_KEY = os.getenv('SECRET_KEY', get_random_secret_key())
 
 DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost 127.0.0.1').split()
+HOST = 'foodgram-warqone.zapto.org'
+
+ALLOWED_HOSTS = os.getenv(
+    'ALLOWED_HOSTS',
+    f'{HOST} localhost 127.0.0.1').split()
 
 AUTH_USER_MODEL = 'users.User'
 

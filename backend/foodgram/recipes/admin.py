@@ -14,6 +14,11 @@ class RecipeAdmin(admin.ModelAdmin):
         """Возвращает количество добавлений рецепта в избранное."""
         return obj.favorite_recipes.count()
 
+    @admin.display(description='Короткая ссылка')
+    def short_url(self, obj):
+        """Возвращает короткую ссылку на рецепт."""
+        return obj.get_short_url()
+
 
 @admin.register(Tag)
 class TagAdmin(admin.ModelAdmin):
