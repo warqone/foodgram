@@ -100,7 +100,7 @@ jobs:
           echo "DB_NAME=${{ secrets.POSTGRES_DB }}" >> .env
           echo "DB_USER=${{ secrets.POSTGRES_USER }}" >> .env
           echo "DB_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" >> .env
-          echo "DB_HOST=${{ secrets.POSTGRES_DB }}" >> .env
+          echo "DB_HOST=db" >> .env
           echo "DB_PORT=5432" >> .env
 
       - name: Copy docker-compose.yml via ssh
@@ -155,7 +155,6 @@ jobs:
           token: ${{ secrets.TELEGRAM_TOKEN }}
           message: >-
             Deploy ${{ github.repository }} successful
-            Commit: ${{ github.sha }}
             Author: ${{ github.actor }}
             Commit Message: ${{ github.event.head_commit.message }}
             https://github.com/${{ github.repository }}/commit/${{ github.sha }}
