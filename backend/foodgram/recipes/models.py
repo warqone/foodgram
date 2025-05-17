@@ -6,7 +6,7 @@ from hashids import Hashids
 from recipes import constants
 
 User = get_user_model()
-hashids = Hashids(min_length=6, salt=settings.SECRET_KEY)
+hashids = Hashids(min_length=6, salt='recipe')
 
 
 class Tag(models.Model):

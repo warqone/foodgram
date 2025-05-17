@@ -1,16 +1,12 @@
 from django.shortcuts import get_object_or_404, redirect
 from django.conf import settings
-from hashids import Hashids
 
-from recipes.models import Recipe
-
-hashids = Hashids(min_length=6, salt=settings.SECRET_KEY)
+from recipes.models import Recipe, hashids
 
 
 def redirect_to_recipe(request, short_id):
     """Перенаправляет на полный URL рецепта по короткой ссылке."""
     try:
-        # Декодируем ID рецепта
         decoded = hashids.decode(short_id)
         if not decoded:
             return redirect(settings.HOST)
