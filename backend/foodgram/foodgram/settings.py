@@ -16,7 +16,7 @@ HOST = 'foodgram-warqone.zapto.org'
 
 ALLOWED_HOSTS = os.getenv(
     'ALLOWED_HOSTS',
-    f'{HOST} localhost 127.0.0.1').split()
+    'localhost 127.0.0.1').split()
 
 AUTH_USER_MODEL = 'users.User'
 
