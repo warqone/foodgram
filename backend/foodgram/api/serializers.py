@@ -1,12 +1,12 @@
 import base64
 
 from django.contrib.auth import get_user_model
-from django.core.validators import RegexValidator
 from django.core.files.base import ContentFile
+from django.core.validators import RegexValidator
 from rest_framework import serializers
 from rest_framework.authtoken.models import Token
 
-from recipes.models import Recipe, Tag, Ingredient, RecipeIngredient
+from recipes.models import Ingredient, Recipe, RecipeIngredient, Tag
 from users import constants
 
 User = get_user_model()

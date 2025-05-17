@@ -1,7 +1,7 @@
-from django.shortcuts import get_object_or_404, redirect
 from django.conf import settings
+from django.shortcuts import redirect
 
-from recipes.models import Recipe, hashids
+from recipes.models import hashids
 
 
 def redirect_to_recipe(request, short_id):
@@ -12,7 +12,6 @@ def redirect_to_recipe(request, short_id):
             return redirect(settings.HOST)
 
         recipe_id = decoded[0]
-        recipe = get_object_or_404(Recipe, id=recipe_id)
-        return redirect(f'/recipes/{recipe.id}/')
+        return redirect(f'/recipes/{recipe_id}/')
     except Exception:
         return redirect(settings.HOST)

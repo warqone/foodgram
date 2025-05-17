@@ -1,7 +1,7 @@
+from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import RegexValidator
 from django.db import models
-from django.conf import settings
 
 from users import constants, validators
 
@@ -15,7 +15,8 @@ class User(AbstractUser):
             validators.validate_username,
             RegexValidator(
                 regex=constants.USERNAME_VALIDATOR,
-                message='Имя пользователя может содержать только буквы, цифры и символы @/./+/-/_')
+                message='Имя пользователя может содержать только буквы, '
+                'цифры и символы @/./+/-/_')
         ]
     )
     role = models.CharField(

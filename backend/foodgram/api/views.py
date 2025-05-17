@@ -1,21 +1,17 @@
 from django.contrib.auth import get_user_model
-from django.shortcuts import get_object_or_404
 from django.db.models import Count
-from djoser.serializers import SetPasswordSerializer
-from django_filters.rest_framework import DjangoFilterBackend
 from django.http import HttpResponse
-from rest_framework import (
-    viewsets, permissions, pagination, response, status, filters)
+from django.shortcuts import get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
+from djoser.serializers import SetPasswordSerializer
+from rest_framework import (filters, pagination, permissions, response, status,
+                            viewsets)
 from rest_framework.decorators import action
 
 from api import serializers
 from api.filters import IngredientFilter
 from api.permissions import IsAuthorOrReadOnly
-from api.serializers import (
-    AvatarSerializer, TagSerializer, IngredientSerializer, RecipeSerializer,
-    RecipeCreateUpdateSerializer, SubscriptionSerializer,
-    ShortRecipeSerializer)
-from recipes.models import Recipe, Tag, Ingredient, Favorite, ShoppingCart
+from recipes.models import Favorite, Ingredient, Recipe, ShoppingCart, Tag
 
 User = get_user_model()
 
@@ -60,7 +56,7 @@ class UserViewSet(viewsets.ModelViewSet):
     def avatar(self, request):
         user = request.user
         if request.method == 'PUT':
-            serializer = AvatarSerializer(
+            serializer = serializers.AvatarSerializer(
                 user, data=request.data, context={'request': request}
             )
             serializer.is_valid(raise_exception=True)
@@ -93,7 +89,7 @@ class UserViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             user.subscriptions.add(author)
-            serializer = SubscriptionSerializer(
+            serializer = serializers.SubscriptionSerializer(
                 author,
                 context={
                     'request': request,
@@ -124,7 +120,7 @@ class UserViewSet(viewsets.ModelViewSet):
         page = self.paginate_queryset(queryset)
 
         if page is not None:
-            serializer = SubscriptionSerializer(
+            serializer = serializers.SubscriptionSerializer(
                 page,
                 many=True,
                 context={
@@ -134,7 +130,7 @@ class UserViewSet(viewsets.ModelViewSet):
             )
             return self.get_paginated_response(serializer.data)
 
-        serializer = SubscriptionSerializer(
+        serializer = serializers.SubscriptionSerializer(
             queryset,
             many=True,
             context={
@@ -151,7 +147,7 @@ class TagViewSet(viewsets.ModelViewSet):
     Фильтрация по slug.
     """
     queryset = Tag.objects.all()
-    serializer_class = TagSerializer
+    serializer_class = serializers.TagSerializer
     permission_classes = [permissions.AllowAny]
     filter_backends = [filters.SearchFilter]
     search_fields = ['slug']
@@ -165,7 +161,7 @@ class IngredientViewSet(viewsets.ModelViewSet):
     Поиск по названию ингредиента.
     """
     queryset = Ingredient.objects.all()
-    serializer_class = IngredientSerializer
+    serializer_class = serializers.IngredientSerializer
     permission_classes = [permissions.AllowAny]
     filter_backends = (IngredientFilter,)
     search_fields = ('^name',)
@@ -199,7 +195,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST)
             Favorite.objects.create(recipe=recipe, user=request.user)
             return response.Response(
-                ShortRecipeSerializer(recipe).data,
+                serializers.ShortRecipeSerializer(recipe).data,
                 status=status.HTTP_201_CREATED)
         elif request.method == 'DELETE':
             try:
@@ -226,7 +222,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST)
             ShoppingCart.objects.create(recipe=recipe, user=request.user)
             return response.Response(
-                ShortRecipeSerializer(recipe).data,
+                serializers.ShortRecipeSerializer(recipe).data,
                 status=status.HTTP_201_CREATED)
         elif request.method == 'DELETE':
             try:
@@ -293,8 +289,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     def get_serializer_class(self):
         if self.action in ['create', 'update', 'partial_update']:
-            return RecipeCreateUpdateSerializer
-        return RecipeSerializer
+            return serializers.RecipeCreateUpdateSerializer
+        return serializers.RecipeSerializer
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
@@ -330,8 +326,4 @@ class RecipeViewSet(viewsets.ModelViewSet):
             )
 
         queryset = queryset.distinct()
-
-        if self.request.query_params.get('limit'):
-            queryset = queryset[:int(self.request.query_params.get('limit'))]
-
         return queryset
