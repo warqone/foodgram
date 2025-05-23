@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import models
+from django.core.validators import MinValueValidator
 from hashids import Hashids
 
 from recipes import constants
@@ -43,7 +44,12 @@ class Ingredient(models.Model):
         verbose_name = 'Ингредиент'
         verbose_name_plural = 'Ингредиенты'
         ordering = ('name',)
-        unique_together = ('name', 'measurement_unit')
+        constraints = [
+            models.UniqueConstraint(
+                fields=['name', 'measurement_unit'],
+                name='unique_ingredient_measurement'
+            )
+        ]
 
     def __str__(self):
         return f'{self.name} ({self.measurement_unit})'
@@ -52,7 +58,8 @@ class Ingredient(models.Model):
 class Recipe(models.Model):
     tags = models.ManyToManyField(
         Tag,
-        verbose_name='Теги'
+        verbose_name='Теги',
+        related_name='recipes',
     )
     author = models.ForeignKey(
         User,
@@ -65,27 +72,21 @@ class Recipe(models.Model):
         upload_to=settings.RECIPES_ROOT
     )
     ingredients = models.ManyToManyField(
-        'Ingredient',
+        Ingredient,
         through='RecipeIngredient',
         verbose_name='Ингредиенты',
     )
-    is_favorited = models.BooleanField(
-        'Добавлено в избранное',
-        default=False
-    )
-    is_in_shopping_cart = models.BooleanField(
-        'Добавлено в корзину',
-        default=False)
     name = models.CharField(
+        max_length=constants.MAX_TITLE_LENGTH,
         verbose_name='Название рецепта',
-        max_length=constants.MAX_TITLE_LENGTH
     )
     text = models.CharField(
         max_length=constants.RECIPE_MAX_LENGTH,
         verbose_name='Описание рецепта'
     )
-    cooking_time = models.IntegerField(
-        verbose_name='Время приготовления (минуты)'
+    cooking_time = models.PositiveSmallIntegerField(
+        verbose_name='Время приготовления (минуты)',
+        validators=[MinValueValidator(1)],
     )
     pub_date = models.DateTimeField(
         auto_now_add=True,
@@ -98,12 +99,37 @@ class Recipe(models.Model):
         verbose_name_plural = 'Рецепты'
 
     def get_short_url(self):
-        """Генерирует короткую ссылку на рецепт."""
         hashid = hashids.encode(self.id)
-        return f"{settings.HOST}/r/{hashid}"
+        return f'{settings.LINK_HOST}/r/{hashid}'
 
     def __str__(self):
         return f'Рецепт от {self.author.username}: {self.name}'
+
+
+class BaseUserRecipe(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='%(class)ss',
+        verbose_name='Пользователь'
+    )
+    recipe = models.ForeignKey(
+        Recipe,
+        on_delete=models.CASCADE,
+        related_name='%(class)ss',
+        verbose_name='Рецепт'
+    )
+    created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        abstract = True
+        ordering = ('-created',)
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'recipe'],
+                name='unique_%(class)s'
+            )
+        ]
 
 
 class RecipeIngredient(models.Model):
@@ -116,10 +142,12 @@ class RecipeIngredient(models.Model):
     ingredient = models.ForeignKey(
         Ingredient,
         on_delete=models.CASCADE,
+        related_name='ingredient_recipes',
         verbose_name='Ингредиент'
     )
     amount = models.PositiveSmallIntegerField(
         verbose_name='Количество',
+        validators=[MinValueValidator(1)]
     )
 
     class Meta:
@@ -135,52 +163,23 @@ class RecipeIngredient(models.Model):
     def __str__(self):
         return (
             f'{self.amount} {self.ingredient.measurement_unit} '
-            f'{self.ingredient.name}')
+            f'{self.ingredient.name}'
+        )
 
 
-class Favorite(models.Model):
-    user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        verbose_name='Пользователь',
-        related_name='user_favorites'
-    )
-    recipe = models.ForeignKey(
-        Recipe,
-        on_delete=models.CASCADE,
-        verbose_name='Рецепт',
-        related_name='favorite_recipes'
-    )
-    created = models.DateTimeField(
-        verbose_name='Дата добавления в избранное',
-        auto_now_add=True
-    )
-
-    class Meta:
-        unique_together = ('user', 'recipe')
-        ordering = ('-created',)
+class Favorite(BaseUserRecipe):
+    class Meta(BaseUserRecipe.Meta):
         verbose_name = 'Избранное'
         verbose_name_plural = 'Избранные'
 
+    def __str__(self):
+        return f'{self.user.username} добавил {self.recipe.name} в избранное'
 
-class ShoppingCart(models.Model):
-    user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        verbose_name='Пользователь'
-    )
-    recipe = models.ForeignKey(
-        Recipe,
-        on_delete=models.CASCADE,
-        verbose_name='Рецепт'
-    )
-    created = models.DateTimeField(
-        verbose_name='Дата добавления в корзину',
-        auto_now_add=True
-    )
 
-    class Meta:
-        unique_together = ('user', 'recipe')
-        ordering = ('-created',)
+class ShoppingCart(BaseUserRecipe):
+    class Meta(BaseUserRecipe.Meta):
         verbose_name = 'Корзина'
         verbose_name_plural = 'Корзины'
+
+    def __str__(self):
+        return f'{self.user.username} добавил {self.recipe.name} в корзину'

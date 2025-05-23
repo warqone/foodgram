@@ -15,8 +15,11 @@ class User(AbstractUser):
             validators.validate_username,
             RegexValidator(
                 regex=constants.USERNAME_VALIDATOR,
-                message='Имя пользователя может содержать только буквы, '
-                'цифры и символы @/./+/-/_')
+                message=(
+                    'Имя пользователя может содержать только буквы, '
+                    'цифры и символы @/./+/-/_'
+                )
+            )
         ]
     )
     role = models.CharField(
@@ -31,25 +34,6 @@ class User(AbstractUser):
         blank=True,
         null=True
     )
-    subscriptions = models.ManyToManyField(
-        'self',
-        through='Subscription',
-        symmetrical=False,
-        verbose_name='Подписки',
-        related_name='subscribers'
-    )
-    favorites = models.ManyToManyField(
-        'recipes.Recipe',
-        through='recipes.Favorite',
-        verbose_name='Избранные рецепты',
-        related_name='favorites'
-    )
-    shopping_cart = models.ManyToManyField(
-        'recipes.Recipe',
-        through='recipes.ShoppingCart',
-        verbose_name='Список покупок',
-        related_name='shopping_cart'
-    )
 
     def __str__(self):
         return self.username[:constants.USERNAME_LENGTH]
@@ -63,13 +47,13 @@ class Subscription(models.Model):
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='following',
+        related_name='subscriptions',
         verbose_name='Подписчик'
     )
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='followers',
+        related_name='subscribers',
         verbose_name='Автор'
     )
     created_at = models.DateTimeField(auto_now_add=True)
