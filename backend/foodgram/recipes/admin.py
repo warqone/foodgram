@@ -12,7 +12,7 @@ class RecipeAdmin(admin.ModelAdmin):
     @admin.display(description='Добавлений в избранное')
     def favorites_count(self, obj):
         """Возвращает количество добавлений рецепта в избранное."""
-        return obj.favorite_recipes.count()
+        return obj.favorites.count()
 
     @admin.display(description='Короткая ссылка')
     def short_url(self, obj):
