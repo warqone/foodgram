@@ -7,7 +7,7 @@ from hashids import Hashids
 from recipes import constants
 
 User = get_user_model()
-hashids = Hashids(min_length=6, salt='recipe')
+hashids = Hashids(min_length=constants.MIN_LENGTH_SHORT_URL, salt='recipe')
 
 
 class Tag(models.Model):
@@ -98,12 +98,12 @@ class Recipe(models.Model):
         verbose_name = 'Рецепт'
         verbose_name_plural = 'Рецепты'
 
-    def get_short_url(self):
-        hashid = hashids.encode(self.id)
-        return f'{settings.LINK_HOST}/r/{hashid}'
-
     def __str__(self):
         return f'Рецепт от {self.author.username}: {self.name}'
+
+    def get_short_url(self):
+        hashid = hashids.encode(self.id)
+        return f'foodgram-warqone.zapto.org/r/{hashid}'
 
 
 class BaseUserRecipe(models.Model):

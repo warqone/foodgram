@@ -15,6 +15,8 @@ User = get_user_model()
 
 
 class TokenCreateSerializer(serializers.Serializer):
+    """Создание токена."""
+
     def create(self, validated_data):
         user = validated_data['user']
         token, _ = Token.objects.get_or_create(user=user)
@@ -61,6 +63,8 @@ class UserCreateSerializer(serializers.ModelSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
+    """Сериализатор для пользователя."""
+
     avatar = serializers.ImageField(required=False)
     is_subscribed = serializers.SerializerMethodField(read_only=True)
 
@@ -90,6 +94,8 @@ class Base64ImageField(serializers.ImageField):
 
 
 class AvatarSerializer(serializers.ModelSerializer):
+    """Сериализатор для аватара пользователя."""
+
     avatar = Base64ImageField(required=True, allow_null=True)
 
     class Meta:
@@ -98,18 +104,24 @@ class AvatarSerializer(serializers.ModelSerializer):
 
 
 class TagSerializer(serializers.ModelSerializer):
+    """Сериализатор для тегов."""
+
     class Meta:
         model = Tag
         fields = ('id', 'name', 'slug')
 
 
 class IngredientSerializer(serializers.ModelSerializer):
+    """Сериализатор для ингредиентов."""
+
     class Meta:
         model = Ingredient
         fields = ('id', 'name', 'measurement_unit')
 
 
 class RecipeIngredientSerializer(serializers.ModelSerializer):
+    """Сериализатор для ингредиентов в рецепте."""
+
     id = serializers.ReadOnlyField(source='ingredient.id')
     name = serializers.ReadOnlyField(source='ingredient.name')
     measurement_unit = serializers.ReadOnlyField(
@@ -121,6 +133,8 @@ class RecipeIngredientSerializer(serializers.ModelSerializer):
 
 
 class RecipeSerializer(serializers.ModelSerializer):
+    """Сериализатор для рецептов."""
+
     author = UserSerializer(read_only=True)
     tags = TagSerializer(many=True, read_only=True)
     ingredients = RecipeIngredientSerializer(
@@ -129,6 +143,7 @@ class RecipeSerializer(serializers.ModelSerializer):
     is_in_shopping_cart = serializers.SerializerMethodField()
 
     def get_is_favorited(self, obj):
+        """Возвращает True, если рецепт в избранном, иначе False."""
         user = self.context['request'].user
         if not user.is_authenticated:
             return False
@@ -136,6 +151,7 @@ class RecipeSerializer(serializers.ModelSerializer):
                        Favorite.objects.filter(user=user, recipe=obj).exists())
 
     def get_is_in_shopping_cart(self, obj):
+        """Возвращает True, если рецепт в корзине, иначе False."""
         user = self.context['request'].user
         if not user.is_authenticated:
             return False
@@ -263,15 +279,12 @@ class SubscriptionCreateSerializer(serializers.Serializer):
 class SubscriptionSerializer(serializers.ModelSerializer):
     is_subscribed = serializers.SerializerMethodField()
     recipes = serializers.SerializerMethodField()
-    recipes_count = serializers.SerializerMethodField()
+    recipes_count = serializers.IntegerField(read_only=True, default=0)
 
     class Meta:
         model = User
         fields = ('email', 'id', 'username', 'first_name', 'last_name',
                   'is_subscribed', 'recipes', 'recipes_count', 'avatar')
-
-    def get_recipes_count(self, obj):
-        return obj.recipes.count()
 
     def get_is_subscribed(self, obj):
         user = self.context['request'].user
@@ -284,3 +297,38 @@ class SubscriptionSerializer(serializers.ModelSerializer):
         if limit:
             qs = qs[:int(limit)]
         return ShortRecipeSerializer(qs, many=True).data
+
+
+class BaseRelationSerializer(serializers.ModelSerializer):
+    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
+    duplicate_error = 'Объект уже добавлен.'
+
+    def validate(self, attrs):
+        """Проверяем, что рецепт не добавлен в список покупок."""
+        request = self.context['request']
+        user = request.user
+        recipe = attrs['recipe']
+        model = self.Meta.model
+
+        if model.objects.filter(user=user, recipe=recipe).exists():
+            raise serializers.ValidationError(self.duplicate_error)
+
+        return attrs
+
+    class Meta:
+        fields = ('user', 'recipe')
+        abstract = True
+
+
+class FavoriteSerializer(BaseRelationSerializer):
+    duplicate_error = 'Рецепт уже добавлен в избранное.'
+
+    class Meta(BaseRelationSerializer.Meta):
+        model = Favorite
+
+
+class ShoppingCartSerializer(BaseRelationSerializer):
+    duplicate_error = 'Рецепт уже добавлен в список покупок.'
+
+    class Meta(BaseRelationSerializer.Meta):
+        model = ShoppingCart

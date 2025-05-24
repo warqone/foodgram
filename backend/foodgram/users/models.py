@@ -7,6 +7,11 @@ from users import constants, validators
 
 
 class User(AbstractUser):
+    email = models.EmailField(
+        'Адрес email',
+        max_length=constants.EMAIL_LENGTH,
+        unique=True,
+    )
     username = models.CharField(
         'Имя пользователя',
         max_length=constants.USERNAME_LENGTH,
@@ -21,6 +26,14 @@ class User(AbstractUser):
                 )
             )
         ]
+    )
+    first_name = models.CharField(
+        'Имя',
+        max_length=constants.NAME_LENGTH,
+    )
+    last_name = models.CharField(
+        'Фамилия',
+        max_length=constants.NAME_LENGTH,
     )
     role = models.CharField(
         'Роль',

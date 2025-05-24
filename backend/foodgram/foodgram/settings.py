@@ -9,7 +9,7 @@ load_dotenv(os.path.join(BASE_DIR, '.env'))
 
 SECRET_KEY = os.getenv('SECRET_KEY', get_random_secret_key())
 
-DEBUG = False
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = os.getenv(
     'ALLOWED_HOSTS',
@@ -138,5 +138,3 @@ MEDIA_ROOT = '/app/media/'
 
 RECIPES_ROOT = 'recipes/images/'
 AVATAR_PATH = 'users/'
-
-LINK_HOST = 'foodgram-warqone.zapto.org'

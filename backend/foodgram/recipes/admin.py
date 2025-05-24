@@ -5,6 +5,11 @@ from recipes.models import Ingredient, Recipe, Tag
 
 @admin.register(Recipe)
 class RecipeAdmin(admin.ModelAdmin):
+    """Админка для модели Recipe.
+
+    Позволяет просматривать, фильтровать и поиск рецептов.
+    """
+
     list_display = ('name', 'author', 'pub_date', 'favorites_count')
     list_filter = ('tags',)
     search_fields = ('name', 'author__username')
@@ -22,6 +27,11 @@ class RecipeAdmin(admin.ModelAdmin):
 
 @admin.register(Tag)
 class TagAdmin(admin.ModelAdmin):
+    """Админка для модели Tag.
+
+    Позволяет просматривать, фильтровать и поиск тегов.
+    """
+
     list_display = ('name', 'slug')
     list_filter = ('name', 'slug')
     search_fields = ('name', 'slug')
@@ -29,6 +39,11 @@ class TagAdmin(admin.ModelAdmin):
 
 @admin.register(Ingredient)
 class IngredientAdmin(admin.ModelAdmin):
+    """Админка для модели Ingredient.
+
+    Позволяет просматривать, фильтровать и поиск ингредиентов.
+    """
+
     list_display = ('name', 'measurement_unit')
     list_filter = ('name',)
     search_fields = ('name',)
