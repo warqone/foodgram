@@ -45,11 +45,10 @@ class User(AbstractUser):
         'Аватар',
         upload_to=settings.AVATAR_PATH,
         blank=True,
-        null=True
     )
 
     def __str__(self):
-        return self.username[:constants.USERNAME_LENGTH]
+        return self.username
 
     @property
     def is_admin(self):

@@ -263,12 +263,14 @@ class RecipeViewSet(viewsets.ModelViewSet):
         )
 
         buffer = self.build_shopping_list(ingredients_qs)
-        rsp = HttpResponse(
+        response = HttpResponse(
             buffer.getvalue(),
             content_type='text/plain; charset=utf-8',
         )
-        rsp['Content-Disposition'] = 'attachment; filename="shopping_list.txt"'
-        return rsp
+        response['Content-Disposition'] = (
+            'attachment; filename="shopping_list.txt"'
+        )
+        return response
 
     @staticmethod
     def build_shopping_list(ingredients_qs):

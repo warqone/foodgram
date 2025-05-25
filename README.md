@@ -1,3 +1,9 @@
+// FOR REVIEW
+// IP ADDRESS: 158.160.28.122
+// DOMAIN: https://foodgram-warqone.zapto.org/
+// ADMIN EMAIL: warqone@gmail.com
+// ADMIN PASSWORD: JlOv3bJ-5z
+// ADMIN USERNAME: Admin
 # **Foodgram - Как инстаграм, но только для рецептов!**
 ___  
 [![Main Foodgram workflow](https://github.com/warqone/foodgram/actions/workflows/main.yml/badge.svg)](https://github.com/warqone/foodgram/actions/workflows/main.yml)  
