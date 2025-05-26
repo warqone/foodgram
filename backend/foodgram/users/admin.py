@@ -6,10 +6,14 @@ from users.models import User
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
+    """Админка для модели User.
+
+    Позволяет просматривать, фильтровать и поиск пользователей.
+    """
+
     list_display = ('username', 'email', 'role')
-    list_filter = ('role',)
-    search_fields = ('username', 'email')
-    list_editable = ('role',)
+    list_filter = ('role', 'is_active', 'is_superuser')
+    search_fields = ('username', 'email', 'first_name', 'last_name')
     empty_value_display = '-пусто-'
     fieldsets = (
         (None, {'fields': ('username', 'email', 'password')}),

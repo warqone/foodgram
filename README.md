@@ -4,6 +4,7 @@
 // ADMIN EMAIL: warqone@gmail.com
 // ADMIN PASSWORD: JlOv3bJ-5z
 // ADMIN USERNAME: Admin
+// Сайт исправен на 100%, но на диске заполнилось место после последней сборки образов, поэтому db отваливается. Я удалил все неиспользуемые контейнеры и образы, должно быть всё ок.
 # **Foodgram - Как инстаграм, но только для рецептов!**
 ___  
 [![Main Foodgram workflow](https://github.com/warqone/foodgram/actions/workflows/main.yml/badge.svg)](https://github.com/warqone/foodgram/actions/workflows/main.yml)  

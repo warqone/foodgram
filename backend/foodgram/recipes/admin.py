@@ -1,23 +1,29 @@
 from django.contrib import admin
+from django.db.models import Count
 
 from recipes.models import Ingredient, Recipe, Tag
 
 
 @admin.register(Recipe)
 class RecipeAdmin(admin.ModelAdmin):
-    """Админка для модели Recipe.
-
-    Позволяет просматривать, фильтровать и поиск рецептов.
-    """
+    """Администраторское меню для модели Recipe."""
 
     list_display = ('name', 'author', 'pub_date', 'favorites_count')
     list_filter = ('tags',)
     search_fields = ('name', 'author__username')
 
+    def get_queryset(self, request):
+        """Возвращает queryset с дополнительными атрибутами."""
+        queryset = super().get_queryset(request)
+        return queryset.select_related(
+            'author').prefetch_related(
+            'tags', 'ingredients', 'favorites').annotate(
+                favorites_count_cached=Count('favorites'))
+
     @admin.display(description='Добавлений в избранное')
     def favorites_count(self, obj):
-        """Возвращает количество добавлений рецепта в избранное."""
-        return obj.favorites.count()
+        """Возвращает количество добавлений в избранное."""
+        return obj.favorites_count_cached
 
     @admin.display(description='Короткая ссылка')
     def short_url(self, obj):
@@ -45,5 +51,4 @@ class IngredientAdmin(admin.ModelAdmin):
     """
 
     list_display = ('name', 'measurement_unit')
-    list_filter = ('name',)
     search_fields = ('name',)

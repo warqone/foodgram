@@ -254,7 +254,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             permission_classes=[permissions.IsAuthenticated])
     def download_shopping_cart(self, request):
         """Выгрузка списка покупок."""
-        ingredients_qs = (
+        ingredients_queryset = (
             RecipeIngredient.objects
             .filter(recipe__shoppingcarts__user=request.user)
             .values('ingredient__name', 'ingredient__measurement_unit')
@@ -262,7 +262,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             .order_by('ingredient__name')
         )
 
-        buffer = self.build_shopping_list(ingredients_qs)
+        buffer = self.build_shopping_list(ingredients_queryset)
         response = HttpResponse(
             buffer.getvalue(),
             content_type='text/plain; charset=utf-8',
@@ -276,14 +276,14 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def build_shopping_list(ingredients_qs):
         """Сборка списка покупок."""
         from io import StringIO
-        buff = StringIO()
+        buffer = StringIO()
         for row in ingredients_qs:
-            buff.write(
+            buffer.write(
                 f'{row["ingredient__name"]} '
                 f'({row["ingredient__measurement_unit"]}) – {row["total"]}\n'
             )
-        buff.seek(0)
-        return buff
+        buffer.seek(0)
+        return buffer
 
     def get_serializer_class(self):
         """Выбор сериализатора."""
@@ -301,21 +301,22 @@ class RecipeViewSet(viewsets.ModelViewSet):
         Аннотируем рецепты с информацией о том, добавлен ли рецепт в
         избранное и корзину.
         """
-        qs = (Recipe.objects
-              .select_related('author')
-              .prefetch_related('tags',
-                                'recipe_ingredients__ingredient'))
+        queryset = (
+            Recipe.objects.select_related(
+                'author').prefetch_related(
+                    'tags', 'recipe_ingredients__ingredient'))
 
         user = self.request.user
         if user.is_authenticated:
-            fav_subq = Favorite.objects.filter(
+            favorited = Favorite.objects.filter(
                 user=user, recipe=OuterRef('pk'))
-            cart_subq = ShoppingCart.objects.filter(
+            carted = ShoppingCart.objects.filter(
                 user=user, recipe=OuterRef('pk'))
-            qs = qs.annotate(is_favorited=Exists(fav_subq),
-                             is_in_shopping_cart=Exists(cart_subq))
+            queryset = queryset.annotate(
+                is_favorited=Exists(favorited),
+                is_in_shopping_cart=Exists(carted))
         else:
-            qs = qs.annotate(
+            queryset = queryset.annotate(
                 is_favorited=Value(False, output_field=BooleanField()),
                 is_in_shopping_cart=Value(False, output_field=BooleanField()))
-        return qs
+        return queryset
