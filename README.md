@@ -1,16 +1,18 @@
-// FOR REVIEW
-// IP ADDRESS: 158.160.28.122
-// DOMAIN: https://foodgram-warqone.zapto.org/
-// ADMIN EMAIL: warqone@gmail.com
-// ADMIN PASSWORD: JlOv3bJ-5z
-// ADMIN USERNAME: Admin
-// Сайт исправен на 100%, но на диске заполнилось место после последней сборки образов, поэтому db отваливается. Я удалил все неиспользуемые контейнеры и образы, должно быть всё ок.
 # **Foodgram - Как инстаграм, но только для рецептов!**
 ___  
 [![Main Foodgram workflow](https://github.com/warqone/foodgram/actions/workflows/main.yml/badge.svg)](https://github.com/warqone/foodgram/actions/workflows/main.yml)  
 
 ---
+Фудграм» — это сайт, на котором можно публиковать собственные рецепты, добавлять чужие рецепты в избранное, подписываться на других авторов и создавать список покупок для заданных блюд.
+Вот что было сделано в ходе работы над проектом:
+создан собственный API-сервис на базе проекта Django;
+подключено SPA к бэкенду на Django через API;
+созданы образы и запущены контейнеры Docker;
+создано, развёрнуто и запущено на сервере мультиконтейнерное приложение;
+закреплены на практике основы DevOps, включая CI/CD.
 
+
+Инструменты и стек: #python #JSON #YAML #Django #React #API #Docker #Nginx #PostgreSQL #Gunicorn #JWT #Postman
 ## **Возможности проекта**  
 **Foodgram** - это удобная платформа для обмена рецептами! Здесь вы можете:  
 - **Выкладывать свои любимые рецепты** и делиться ими с друзьями.  
@@ -31,7 +33,7 @@ ___
 - [React](https://react.dev/) - библиотека для создания интерактивных интерфейсов.  
 - [Docker](https://www.docker.com/) - контейнеризация и упрощение развёртывания.  
 - [Yandex Cloud](https://cloud.yandex.ru/) - облачная платформа для размещения проекта.  
-
+Остальные инструменты: JSON YAML API Nginx Gunicorn JWT Postman
 ---
 
 ## **Как развернуть проект (локально)**  
